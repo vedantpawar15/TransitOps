@@ -8,18 +8,23 @@ import Trips from './pages/Trips';
 import Maintenance from './pages/Maintenance';
 import FuelExpenses from './pages/FuelExpenses';
 import Analytics from './pages/Analytics';
+import Settings from './pages/Settings';
 
 import MainLayout from './components/layout/MainLayout';
 
 const ProtectedRoute = ({ children }) => {
-  return children;
+  const { isAuthenticated, loading } = useContext(AuthContext);
+
+  if (loading) return <div className="flex h-screen items-center justify-center">Loading...</div>;
+
+  return isAuthenticated ? children : <Navigate to="/login" />;
 };
 
 function AppRoutes() {
   return (
     <Routes>
-      <Route path="/login" element={<Navigate to="/dashboard" />} />
-      <Route path="/signup" element={<Navigate to="/dashboard" />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<Signup />} />
       
       {/* Protected Routes */}
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
@@ -27,6 +32,7 @@ function AppRoutes() {
       <Route path="/maintenance" element={<ProtectedRoute><Maintenance /></ProtectedRoute>} />
       <Route path="/fuel-expenses" element={<ProtectedRoute><FuelExpenses /></ProtectedRoute>} />
       <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
+      <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
       
       {/* Redirect root to dashboard */}
       <Route path="/" element={<Navigate to="/dashboard" />} />
@@ -34,7 +40,6 @@ function AppRoutes() {
       {/* Placeholders for teammates */}
       <Route path="/fleet" element={<ProtectedRoute><MainLayout><div>Fleet Module</div></MainLayout></ProtectedRoute>} />
       <Route path="/drivers" element={<ProtectedRoute><MainLayout><div>Drivers Module</div></MainLayout></ProtectedRoute>} />
-      <Route path="/settings" element={<ProtectedRoute><MainLayout><div>Settings Module</div></MainLayout></ProtectedRoute>} />
     </Routes>
   );
 }

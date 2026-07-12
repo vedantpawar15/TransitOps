@@ -1,31 +1,40 @@
-import React from 'react';
-import { Search, Bell, UserCircle } from 'lucide-react';
+import React, { useContext } from 'react';
+import { AuthContext } from '../../context/AuthContext';
+import { Search, User } from 'lucide-react';
 
 const Header = () => {
+  const { user } = useContext(AuthContext);
+
+  const getInitials = (name = 'Raman K.') => {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
+
   return (
-    <header className="h-20 bg-white border-b-4 border-black flex items-center justify-between px-8 z-10 sticky top-0">
+    <header className="h-16 bg-zinc-950 border-b border-zinc-850 flex items-center justify-between px-8 z-10 sticky top-0">
+      {/* Search Input block */}
       <div className="flex items-center flex-1">
-        <div className="relative w-96">
+        <div className="relative w-80">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search className="h-5 w-5 text-black" strokeWidth={3} />
+            <Search className="h-4 w-4 text-zinc-500" />
           </div>
           <input
             type="text"
-            className="block w-full pl-10 pr-3 py-2 border-2 border-black bg-white text-black placeholder-gray-500 focus:outline-none focus:border-black focus:shadow-[4px_4px_0_rgba(0,0,0,1)] focus:-translate-y-1 focus:-translate-x-1 font-mono font-bold transition-all"
+            className="block w-full pl-9 pr-3 py-1.5 border border-zinc-800 bg-zinc-900 text-zinc-200 placeholder-zinc-500 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-amber-500/20 focus:border-amber-500/50 transition-all"
             placeholder="SEARCH_DATABASE..."
           />
         </div>
       </div>
-      <div className="flex items-center space-x-6">
-        <button className="w-10 h-10 border-2 border-black bg-neo-pink flex items-center justify-center hover:bg-black hover:text-neo-pink transition-colors shadow-[2px_2px_0_rgba(0,0,0,1)]">
-          <Bell className="h-5 w-5" strokeWidth={2.5} />
-        </button>
-        <div className="flex items-center space-x-3 border-l-4 border-black pl-6">
-          <div className="text-right">
-            <div className="text-sm font-black uppercase tracking-tighter">Raman K.</div>
-            <div className="text-[10px] text-black font-mono font-bold bg-neo-blue border-2 border-black px-2 py-0.5 mt-1 shadow-[2px_2px_0_rgba(0,0,0,1)] uppercase">Dispatcher Rx</div>
+
+      {/* User profile & initials badge */}
+      <div className="flex items-center space-x-4">
+        <div className="text-right">
+          <div className="text-xs font-semibold text-zinc-300">{user?.name || 'Raman K.'}</div>
+          <div className="text-[10px] text-sky-400 font-bold bg-sky-950/40 border border-sky-800/30 px-2 py-0.5 mt-1 rounded uppercase tracking-wider inline-block">
+            {user?.role || 'Dispatcher'}
           </div>
-          <UserCircle className="h-10 w-10 text-black" strokeWidth={2} />
+        </div>
+        <div className="h-9 w-9 rounded-full bg-sky-500/10 text-sky-400 border border-sky-800/30 flex items-center justify-center text-xs font-extrabold shadow-sm shadow-sky-900/10">
+          {getInitials(user?.name)}
         </div>
       </div>
     </header>
