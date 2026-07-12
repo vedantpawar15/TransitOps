@@ -256,6 +256,37 @@ const mockQuery = async (text, params = []) => {
     return { rows: mockDb.drivers };
   }
 
+  // INSERT INTO vehicles
+  if (queryLower.startsWith('insert into vehicles')) {
+    const newVeh = {
+      id: `veh-${Math.random().toString(36).substr(2, 9)}`,
+      registration_number: params[0],
+      type: params[1],
+      max_load_capacity: Number(params[2]),
+      purchase_cost: Number(params[3]),
+      status: 'Available',
+      created_at: new Date().toISOString()
+    };
+    mockDb.vehicles.unshift(newVeh);
+    return { rows: [newVeh] };
+  }
+
+  // INSERT INTO drivers
+  if (queryLower.startsWith('insert into drivers')) {
+    const newDrv = {
+      id: `drv-${Math.random().toString(36).substr(2, 9)}`,
+      name: params[0],
+      license_number: params[1],
+      license_category: params[2],
+      license_expiry: params[3],
+      contact_number: params[4],
+      status: 'Available',
+      created_at: new Date().toISOString()
+    };
+    mockDb.drivers.unshift(newDrv);
+    return { rows: [newDrv] };
+  }
+
   console.warn('Unhandled query in mockDb:', queryStr, params);
   return { rows: [] };
 };
