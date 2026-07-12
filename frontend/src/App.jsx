@@ -8,6 +8,8 @@ import Trips from './pages/Trips';
 import Maintenance from './pages/Maintenance';
 import FuelExpenses from './pages/FuelExpenses';
 import Analytics from './pages/Analytics';
+import Fleet from './pages/Fleet';
+import Drivers from './pages/Drivers';
 
 import MainLayout from './components/layout/MainLayout';
 
@@ -32,8 +34,8 @@ function AppRoutes() {
       <Route path="/" element={<Navigate to="/dashboard" />} />
       
       {/* Placeholders for teammates */}
-      <Route path="/fleet" element={<ProtectedRoute><MainLayout><div>Fleet Module</div></MainLayout></ProtectedRoute>} />
-      <Route path="/drivers" element={<ProtectedRoute><MainLayout><div>Drivers Module</div></MainLayout></ProtectedRoute>} />
+      <Route path="/fleet" element={<ProtectedRoute><Fleet /></ProtectedRoute>} />
+      <Route path="/drivers" element={<ProtectedRoute><Drivers /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><MainLayout><div>Settings Module</div></MainLayout></ProtectedRoute>} />
     </Routes>
   );

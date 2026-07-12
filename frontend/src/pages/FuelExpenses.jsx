@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import api from '../services/api';
-import Layout from '../components/Layout';
-import { Fuel, DollarSign, Plus, AlertCircle, Check } from 'lucide-react';
+import MainLayout from '../components/layout/MainLayout';
+import { Fuel, DollarSign, X } from 'lucide-react';
 
 const FuelExpenses = () => {
   const { user, hasAccess } = useContext(AuthContext);
@@ -24,13 +24,10 @@ const FuelExpenses = () => {
   const [expOther, setExpOther] = useState('');
   const [expDate, setExpDate] = useState('');
 
-  // Forms view toggles
   const [showFuelForm, setShowFuelForm] = useState(false);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
 
   const [loading, setLoading] = useState(true);
-  const [errorMsg, setErrorMsg] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
 
   const canWrite = hasAccess('fuelExpense', 'write');
   const canRead = hasAccess('fuelExpense', 'read');
@@ -54,7 +51,6 @@ const FuelExpenses = () => {
       setLoading(false);
     } catch (err) {
       console.error(err);
-      setErrorMsg('Failed to load operational cost records.');
       setLoading(false);
     }
   };
@@ -68,15 +64,12 @@ const FuelExpenses = () => {
   const handleFuelSubmit = async (e) => {
     e.preventDefault();
     try {
-      setErrorMsg('');
-      setSuccessMsg('');
       await api.post('/fuel-logs', {
         vehicle_id: fuelVehicleId,
         liters: Number(fuelLiters),
         cost: Number(fuelCost),
         date: fuelDate || undefined
       });
-      setSuccessMsg('Fuel log added successfully!');
       setFuelVehicleId('');
       setFuelLiters('');
       setFuelCost('');
@@ -84,15 +77,13 @@ const FuelExpenses = () => {
       setShowFuelForm(false);
       fetchData();
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Error adding fuel log');
+      alert(err.response?.data?.message || 'Error adding fuel log');
     }
   };
 
   const handleExpenseSubmit = async (e) => {
     e.preventDefault();
     try {
-      setErrorMsg('');
-      setSuccessMsg('');
       await api.post('/expenses', {
         vehicle_id: expVehicleId,
         trip_id: expTripId || undefined,
@@ -100,7 +91,6 @@ const FuelExpenses = () => {
         other: Number(expOther || 0),
         date: expDate || undefined
       });
-      setSuccessMsg('Operational expense logged successfully!');
       setExpVehicleId('');
       setExpTripId('');
       setExpToll('');
@@ -109,142 +99,165 @@ const FuelExpenses = () => {
       setShowExpenseForm(false);
       fetchData();
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Error adding expense');
+      alert(err.response?.data?.message || 'Error adding expense');
     }
   };
 
-  // Sum total operational cost (Fuel + Maintenance costs)
   const totalFuelCost = fuelLogs.reduce((sum, item) => sum + Number(item.cost || 0), 0);
   const totalMaintCost = expenses.reduce((sum, item) => sum + Number(item.maintenance_cost || 0), 0);
   const totalOperationalCost = totalFuelCost + totalMaintCost;
 
   if (!canRead) {
     return (
-      <Layout>
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 text-center">
-          <h2 className="text-xl font-bold text-slate-800 mb-2">Access Denied</h2>
-          <p className="text-slate-500">You do not have access to view Fuel & Expenses.</p>
+      <MainLayout>
+        <div className="bg-neo-pink border-4 border-black p-8 shadow-hard text-center font-black uppercase text-2xl">
+          ACCESS_DENIED
         </div>
-      </Layout>
+      </MainLayout>
     );
   }
 
   return (
-    <Layout>
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-        <div>
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Fuel & Expenses</h1>
-          <p className="text-slate-500 mt-1">Manage toll costs, fuel consumption logs, and operational overheads.</p>
+    <MainLayout>
+      <div className="pb-12 text-black">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 border-b-4 border-black pb-4 gap-4">
+          <h2 className="text-4xl md:text-6xl font-black uppercase tracking-tighter mix-blend-darken">
+            OPERATIONAL<span className="text-neo-green">_EXPENSES</span>
+          </h2>
+          {canWrite && (
+            <div className="flex gap-4">
+              <button 
+                onClick={() => { setShowFuelForm(true); setShowExpenseForm(false); }}
+                className="flex items-center bg-neo-green border-4 border-black px-4 py-2 font-bold uppercase shadow-[4px_4px_0_rgba(0,0,0,1)] hover:-translate-y-1 transition-all"
+              >
+                <Fuel className="h-5 w-5 mr-2" strokeWidth={3} /> Log_Fuel
+              </button>
+              <button 
+                onClick={() => { setShowExpenseForm(true); setShowFuelForm(false); }}
+                className="flex items-center bg-neo-yellow border-4 border-black px-4 py-2 font-bold uppercase shadow-[4px_4px_0_rgba(0,0,0,1)] hover:-translate-y-1 transition-all"
+              >
+                <DollarSign className="h-5 w-5 mr-2" strokeWidth={3} /> Log_Expense
+              </button>
+            </div>
+          )}
         </div>
-        {canWrite && (
-          <div className="flex gap-3">
-            <button
-              onClick={() => { setShowFuelForm(true); setShowExpenseForm(false); }}
-              className="flex items-center px-4 py-2.5 rounded-lg text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-700/20 transition-all"
-            >
-              <Fuel className="h-4 w-4 mr-2" />
-              + Log Fuel
-            </button>
-            <button
-              onClick={() => { setShowExpenseForm(true); setShowFuelForm(false); }}
-              className="flex items-center px-4 py-2.5 rounded-lg text-sm font-bold text-white bg-slate-900 hover:bg-slate-850 shadow-md shadow-slate-900/10 transition-all"
-            >
-              <DollarSign className="h-4 w-4 mr-2" />
-              + Add Expense
-            </button>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 mb-10">
+          {/* Fuel Logs */}
+          <div className="bg-white border-4 border-black shadow-hard overflow-hidden">
+            <div className="p-4 border-b-4 border-black bg-neo-green">
+               <h2 className="text-xl font-black uppercase tracking-tighter flex items-center">
+                 <Fuel className="mr-2" strokeWidth={3} /> FUEL_LOGS
+               </h2>
+            </div>
+            {loading ? (
+              <div className="font-bold uppercase text-center py-8">Loading...</div>
+            ) : (
+              <table className="w-full text-left">
+                <thead className="bg-black text-white font-mono text-xs uppercase">
+                  <tr>
+                    <th className="py-3 px-4">Vehicle</th>
+                    <th className="py-3 px-4">Date</th>
+                    <th className="py-3 px-4">Liters</th>
+                    <th className="py-3 px-4 text-right">Cost</th>
+                  </tr>
+                </thead>
+                <tbody className="font-bold divide-y-2 divide-black">
+                  {fuelLogs.map(log => (
+                    <tr key={log.id} className="hover:bg-gray-100 transition-colors">
+                      <td className="py-3 px-4 uppercase">{log.vehicle_name}</td>
+                      <td className="py-3 px-4 font-mono">{new Date(log.date).toLocaleDateString()}</td>
+                      <td className="py-3 px-4 font-mono">{log.liters} L</td>
+                      <td className="py-3 px-4 font-mono text-right">${Number(log.cost).toFixed(2)}</td>
+                    </tr>
+                  ))}
+                  {fuelLogs.length === 0 && <tr><td colSpan="4" className="text-center py-4 uppercase">No logs</td></tr>}
+                </tbody>
+              </table>
+            )}
           </div>
-        )}
+
+          {/* Other Expenses */}
+          <div className="bg-white border-4 border-black shadow-hard overflow-hidden">
+            <div className="p-4 border-b-4 border-black bg-neo-yellow">
+               <h2 className="text-xl font-black uppercase tracking-tighter flex items-center">
+                 <DollarSign className="mr-2" strokeWidth={3} /> OTHER_EXPENSES
+               </h2>
+            </div>
+            {loading ? (
+              <div className="font-bold uppercase text-center py-8">Loading...</div>
+            ) : (
+              <table className="w-full text-left">
+                <thead className="bg-black text-white font-mono text-xs uppercase">
+                  <tr>
+                    <th className="py-3 px-4">Route/Vehicle</th>
+                    <th className="py-3 px-4">Toll</th>
+                    <th className="py-3 px-4">Other</th>
+                    <th className="py-3 px-4 text-right">Total</th>
+                  </tr>
+                </thead>
+                <tbody className="font-bold divide-y-2 divide-black">
+                  {expenses.map(exp => (
+                    <tr key={exp.id} className="hover:bg-gray-100 transition-colors">
+                      <td className="py-3 px-4 uppercase text-sm">
+                        {exp.source && exp.destination ? `${exp.source} → ${exp.destination}` : 'General Overhead'}
+                        <div className="font-mono text-xs text-gray-600">{exp.vehicle_name}</div>
+                      </td>
+                      <td className="py-3 px-4 font-mono">${exp.toll.toFixed(2)}</td>
+                      <td className="py-3 px-4 font-mono">${exp.other.toFixed(2)}</td>
+                      <td className="py-3 px-4 font-mono text-right">${exp.total.toFixed(2)}</td>
+                    </tr>
+                  ))}
+                  {expenses.length === 0 && <tr><td colSpan="4" className="text-center py-4 uppercase">No expenses</td></tr>}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+
+        {/* Cost Summary Footer */}
+        <div className="bg-black text-white border-4 border-black shadow-[8px_8px_0_rgba(0,0,0,1)] p-8 flex flex-col md:flex-row justify-between items-center transform hover:-rotate-1 transition-all">
+           <div>
+             <h3 className="font-black text-2xl uppercase tracking-widest text-neo-yellow">Total_Operational_Cost</h3>
+             <p className="font-mono text-sm uppercase mt-2">Sum of Fuel & Maintenance</p>
+           </div>
+           <div className="text-4xl md:text-6xl font-black mt-4 md:mt-0 text-neo-green">
+             ${totalOperationalCost.toFixed(2)}
+           </div>
+        </div>
       </div>
-
-      {errorMsg && (
-        <div className="mb-6 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 flex items-start">
-          <AlertCircle className="h-5 w-5 mr-3 flex-shrink-0 mt-0.5" />
-          <span className="text-sm font-medium">{errorMsg}</span>
-        </div>
-      )}
-
-      {successMsg && (
-        <div className="mb-6 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-start">
-          <Check className="h-5 w-5 mr-3 flex-shrink-0 mt-0.5" />
-          <span className="text-sm font-medium">{successMsg}</span>
-        </div>
-      )}
 
       {/* Fuel Form Modal */}
       {showFuelForm && (
-        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-200">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-bold text-slate-900">Log Fuel Fill-Up</h3>
-              <button onClick={() => setShowFuelForm(false)} className="text-slate-400 hover:text-slate-600 rounded-lg p-1 hover:bg-slate-100">
-                &times;
-              </button>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white border-4 border-black shadow-hard w-full max-w-md">
+            <div className="flex justify-between items-center bg-black text-white p-4">
+              <h3 className="font-bold uppercase tracking-widest">LOG_FUEL</h3>
+              <button onClick={() => setShowFuelForm(false)} className="hover:text-neo-pink"><X strokeWidth={3} /></button>
             </div>
-            <form onSubmit={handleFuelSubmit} className="space-y-4">
+            <form onSubmit={handleFuelSubmit} className="p-6 space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Vehicle</label>
-                <select
-                  required
-                  value={fuelVehicleId}
-                  onChange={e => setFuelVehicleId(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-                >
-                  <option value="">Choose a vehicle...</option>
-                  {vehicles.map(v => (
-                    <option key={v.id} value={v.id}>{v.registration_number}</option>
-                  ))}
+                <label className="block font-mono text-sm font-bold uppercase mb-2">Vehicle</label>
+                <select required value={fuelVehicleId} onChange={e=>setFuelVehicleId(e.target.value)} className="w-full border-4 border-black p-2.5 font-bold uppercase shadow-[4px_4px_0_rgba(0,0,0,1)] focus:outline-none focus:bg-neo-yellow/20">
+                  <option value="">Select...</option>
+                  {vehicles.map(v => <option key={v.id} value={v.id}>{v.registration_number}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Liters</label>
-                <input
-                  type="number"
-                  required
-                  min="0.1"
-                  step="any"
-                  placeholder="Liters filled"
-                  value={fuelLiters}
-                  onChange={e => setFuelLiters(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-                />
+                <label className="block font-mono text-sm font-bold uppercase mb-2">Liters</label>
+                <input required min="0.1" step="any" value={fuelLiters} onChange={e=>setFuelLiters(e.target.value)} type="number" className="w-full border-4 border-black p-2.5 font-bold uppercase shadow-[4px_4px_0_rgba(0,0,0,1)] focus:outline-none focus:bg-neo-yellow/20" />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Total Fuel Cost ($)</label>
-                <input
-                  type="number"
-                  required
-                  min="0.1"
-                  step="any"
-                  placeholder="Total cost in $"
-                  value={fuelCost}
-                  onChange={e => setFuelCost(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-                />
+                <label className="block font-mono text-sm font-bold uppercase mb-2">Total Cost ($)</label>
+                <input required min="0.1" step="any" value={fuelCost} onChange={e=>setFuelCost(e.target.value)} type="number" className="w-full border-4 border-black p-2.5 font-bold uppercase shadow-[4px_4px_0_rgba(0,0,0,1)] focus:outline-none focus:bg-neo-yellow/20" />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Date</label>
-                <input
-                  type="date"
-                  value={fuelDate}
-                  onChange={e => setFuelDate(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-                />
+                <label className="block font-mono text-sm font-bold uppercase mb-2">Date</label>
+                <input type="date" value={fuelDate} onChange={e=>setFuelDate(e.target.value)} className="w-full border-4 border-black p-2.5 font-bold uppercase shadow-[4px_4px_0_rgba(0,0,0,1)] focus:outline-none focus:bg-neo-yellow/20" />
               </div>
-              <div className="flex justify-end gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowFuelForm(false)}
-                  className="px-4 py-2.5 rounded-lg border border-slate-200 text-sm font-semibold text-slate-500 hover:bg-slate-55"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2.5 rounded-lg text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-700/20"
-                >
-                  Log Fuel
-                </button>
-              </div>
+              <button type="submit" className="w-full bg-neo-green border-4 border-black p-4 font-black uppercase text-xl shadow-[4px_4px_0_rgba(0,0,0,1)] hover:-translate-y-1 transition-all mt-6">
+                Submit_Fuel
+              </button>
             </form>
           </div>
         </div>
@@ -252,197 +265,47 @@ const FuelExpenses = () => {
 
       {/* Expense Form Modal */}
       {showExpenseForm && (
-        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-200">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-bold text-slate-900">Log Operational Expense</h3>
-              <button onClick={() => setShowExpenseForm(false)} className="text-slate-400 hover:text-slate-600 rounded-lg p-1 hover:bg-slate-100">
-                &times;
-              </button>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white border-4 border-black shadow-hard w-full max-w-md">
+            <div className="flex justify-between items-center bg-black text-white p-4">
+              <h3 className="font-bold uppercase tracking-widest">LOG_EXPENSE</h3>
+              <button onClick={() => setShowExpenseForm(false)} className="hover:text-neo-pink"><X strokeWidth={3} /></button>
             </div>
-            <form onSubmit={handleExpenseSubmit} className="space-y-4">
+            <form onSubmit={handleExpenseSubmit} className="p-6 space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Vehicle</label>
-                <select
-                  required
-                  value={expVehicleId}
-                  onChange={e => setExpVehicleId(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-                >
-                  <option value="">Choose a vehicle...</option>
-                  {vehicles.map(v => (
-                    <option key={v.id} value={v.id}>{v.registration_number}</option>
-                  ))}
+                <label className="block font-mono text-sm font-bold uppercase mb-2">Vehicle</label>
+                <select required value={expVehicleId} onChange={e=>setExpVehicleId(e.target.value)} className="w-full border-4 border-black p-2.5 font-bold uppercase shadow-[4px_4px_0_rgba(0,0,0,1)] focus:outline-none focus:bg-neo-yellow/20">
+                  <option value="">Select...</option>
+                  {vehicles.map(v => <option key={v.id} value={v.id}>{v.registration_number}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Linked Trip (Optional)</label>
-                <select
-                  value={expTripId}
-                  onChange={e => setExpTripId(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-                >
-                  <option value="">None / Not linked</option>
-                  {trips.map(t => (
-                    <option key={t.id} value={t.id}>{t.source} → {t.destination} ({t.status})</option>
-                  ))}
+                <label className="block font-mono text-sm font-bold uppercase mb-2">Linked Trip</label>
+                <select value={expTripId} onChange={e=>setExpTripId(e.target.value)} className="w-full border-4 border-black p-2.5 font-bold uppercase shadow-[4px_4px_0_rgba(0,0,0,1)] focus:outline-none focus:bg-neo-yellow/20">
+                  <option value="">None</option>
+                  {trips.map(t => <option key={t.id} value={t.id}>{t.source} → {t.destination}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Toll Cost ($)</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="any"
-                  placeholder="Toll cost in $"
-                  value={expToll}
-                  onChange={e => setExpToll(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-                />
+                <label className="block font-mono text-sm font-bold uppercase mb-2">Toll Cost ($)</label>
+                <input min="0" step="any" value={expToll} onChange={e=>setExpToll(e.target.value)} type="number" className="w-full border-4 border-black p-2.5 font-bold uppercase shadow-[4px_4px_0_rgba(0,0,0,1)] focus:outline-none focus:bg-neo-yellow/20" />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Other Cost ($)</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="any"
-                  placeholder="Other miscellaneous costs"
-                  value={expOther}
-                  onChange={e => setExpOther(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-                />
+                <label className="block font-mono text-sm font-bold uppercase mb-2">Other Cost ($)</label>
+                <input min="0" step="any" value={expOther} onChange={e=>setExpOther(e.target.value)} type="number" className="w-full border-4 border-black p-2.5 font-bold uppercase shadow-[4px_4px_0_rgba(0,0,0,1)] focus:outline-none focus:bg-neo-yellow/20" />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Date</label>
-                <input
-                  type="date"
-                  value={expDate}
-                  onChange={e => setExpDate(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-                />
+                <label className="block font-mono text-sm font-bold uppercase mb-2">Date</label>
+                <input type="date" value={expDate} onChange={e=>setExpDate(e.target.value)} className="w-full border-4 border-black p-2.5 font-bold uppercase shadow-[4px_4px_0_rgba(0,0,0,1)] focus:outline-none focus:bg-neo-yellow/20" />
               </div>
-              <div className="flex justify-end gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowExpenseForm(false)}
-                  className="px-4 py-2.5 rounded-lg border border-slate-200 text-sm font-semibold text-slate-500 hover:bg-slate-55"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2.5 rounded-lg text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-700/20"
-                >
-                  Save Expense
-                </button>
-              </div>
+              <button type="submit" className="w-full bg-neo-yellow border-4 border-black p-4 font-black uppercase text-xl shadow-[4px_4px_0_rgba(0,0,0,1)] hover:-translate-y-1 transition-all mt-6">
+                Submit_Expense
+              </button>
             </form>
           </div>
         </div>
       )}
-
-      {/* Two Tables Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-        {/* Fuel Logs */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-          <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center">
-            <Fuel className="h-5 w-5 mr-2 text-emerald-500" />
-            Fuel Logs
-          </h2>
-          
-          {loading ? (
-            <div className="text-center py-8 text-slate-500 text-sm">Loading logs...</div>
-          ) : fuelLogs.length === 0 ? (
-            <div className="text-center py-8 text-slate-500 text-sm border-2 border-dashed border-slate-200 rounded-xl">
-              No fuel consumption recorded yet.
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-sm">
-                <thead>
-                  <tr className="border-b border-slate-100 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                    <th className="pb-3 pr-4">Vehicle</th>
-                    <th className="pb-3 px-4">Date</th>
-                    <th className="pb-3 px-4">Liters</th>
-                    <th className="pb-3 pl-4 text-right">Cost</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {fuelLogs.map(log => (
-                    <tr key={log.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-all">
-                      <td className="py-4 pr-4 font-semibold text-slate-800">{log.vehicle_name}</td>
-                      <td className="py-4 px-4 text-slate-500">{new Date(log.date).toLocaleDateString()}</td>
-                      <td className="py-4 px-4 font-medium text-slate-700">{log.liters} L</td>
-                      <td className="py-4 pl-4 text-right font-bold text-slate-900">${Number(log.cost).toFixed(2)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-
-        {/* Other Expenses */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-          <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center">
-            <DollarSign className="h-5 w-5 mr-2 text-emerald-500" />
-            Other Operational Expenses
-          </h2>
-
-          {loading ? (
-            <div className="text-center py-8 text-slate-500 text-sm">Loading expenses...</div>
-          ) : expenses.length === 0 ? (
-            <div className="text-center py-8 text-slate-500 text-sm border-2 border-dashed border-slate-200 rounded-xl">
-              No other expenses logged yet.
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-sm">
-                <thead>
-                  <tr className="border-b border-slate-100 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                    <th className="pb-3 pr-4">Route / Vehicle</th>
-                    <th className="pb-3 px-4">Toll</th>
-                    <th className="pb-3 px-4">Other</th>
-                    <th className="pb-3 px-4">Maint. (linked)</th>
-                    <th className="pb-3 pl-4 text-right">Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {expenses.map(exp => (
-                    <tr key={exp.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-all">
-                      <td className="py-4 pr-4">
-                        {exp.source && exp.destination ? (
-                          <p className="font-semibold text-slate-800">{exp.source} → {exp.destination}</p>
-                        ) : (
-                          <p className="text-slate-400 italic">General overhead</p>
-                        )}
-                        <p className="text-xs text-slate-400">{exp.vehicle_name} • {new Date(exp.date).toLocaleDateString()}</p>
-                      </td>
-                      <td className="py-4 px-4 text-slate-650 font-medium">${exp.toll.toFixed(2)}</td>
-                      <td className="py-4 px-4 text-slate-650 font-medium">${exp.other.toFixed(2)}</td>
-                      <td className="py-4 px-4 text-slate-400">${exp.maintenance_cost.toFixed(2)}</td>
-                      <td className="py-4 pl-4 text-right font-bold text-slate-900">${exp.total.toFixed(2)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Operational cost calculation footer card */}
-      <div className="p-6 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-600/10 flex flex-col md:flex-row justify-between items-center gap-4">
-        <div>
-          <h3 className="text-lg font-bold">Total Operational Cost (Auto)</h3>
-          <p className="text-emerald-100 text-xs mt-1">Calculated dynamically: Total Fuel Costs + Cumulative Maintenance release expenses.</p>
-        </div>
-        <div className="text-right">
-          <p className="text-xs text-emerald-100 font-semibold uppercase tracking-wider">Live System Expenses</p>
-          <p className="text-3xl font-extrabold mt-0.5">${totalOperationalCost.toFixed(2)}</p>
-        </div>
-      </div>
-    </Layout>
+    </MainLayout>
   );
 };
 

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import api from '../services/api';
-import Layout from '../components/Layout';
-import { Play, Check, X, Plus, AlertCircle, MapPin, Navigation, Dumbbell } from 'lucide-react';
+import MainLayout from '../components/layout/MainLayout';
+import { Play, Check, X, Plus, AlertCircle, MapPin, Navigation } from 'lucide-react';
 
 const Trips = () => {
   const { user, hasAccess } = useContext(AuthContext);
@@ -27,8 +27,6 @@ const Trips = () => {
   const [fuelCost, setFuelCost] = useState('');
 
   const [loading, setLoading] = useState(true);
-  const [errorMsg, setErrorMsg] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
 
   const canWrite = hasAccess('trip', 'write');
   const canRead = hasAccess('trip', 'read');
@@ -53,7 +51,6 @@ const Trips = () => {
       setLoading(false);
     } catch (err) {
       console.error(err);
-      setErrorMsg('Failed to load trips or eligible resource data.');
       setLoading(false);
     }
   };
@@ -71,483 +68,237 @@ const Trips = () => {
   const handleCreateTrip = async (e) => {
     e.preventDefault();
     if (isOverweight) return;
-
     try {
-      setErrorMsg('');
-      setSuccessMsg('');
       const body = {
-        source,
-        destination,
-        vehicle_id: vehicleId,
-        driver_id: driverId,
-        cargo_weight: Number(cargoWeight),
-        planned_distance: plannedDistance ? Number(plannedDistance) : null,
+        source, destination, vehicle_id: vehicleId, driver_id: driverId,
+        cargo_weight: Number(cargoWeight), planned_distance: plannedDistance ? Number(plannedDistance) : null,
         revenue: revenue ? Number(revenue) : null
       };
-
       await api.post('/trips', body);
-      setSuccessMsg('Draft trip created successfully!');
-      
-      // Reset form
-      setSource('');
-      setDestination('');
-      setVehicleId('');
-      setDriverId('');
-      setCargoWeight('');
-      setPlannedDistance('');
-      setRevenue('');
-
+      setSource(''); setDestination(''); setVehicleId(''); setDriverId(''); setCargoWeight(''); setPlannedDistance(''); setRevenue('');
       fetchTripsAndDropdowns();
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Error creating trip');
+      alert(err.response?.data?.message || 'Error creating trip');
     }
   };
 
   const handleDispatch = async (tripId) => {
     try {
-      setErrorMsg('');
-      setSuccessMsg('');
       await api.patch(`/trips/${tripId}/dispatch`);
-      setSuccessMsg('Trip dispatched successfully!');
       fetchTripsAndDropdowns();
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Error dispatching trip');
+      alert(err.response?.data?.message || 'Error dispatching trip');
     }
   };
 
   const handleCompleteSubmit = async (e) => {
     e.preventDefault();
     try {
-      setErrorMsg('');
-      setSuccessMsg('');
       await api.patch(`/trips/${completingTripId}/complete`, {
-        actual_distance: Number(actualDistance),
-        fuel_consumed: Number(fuelConsumed),
-        fuel_cost: fuelCost ? Number(fuelCost) : undefined
+        actual_distance: Number(actualDistance), fuel_consumed: Number(fuelConsumed), fuel_cost: fuelCost ? Number(fuelCost) : undefined
       });
-      setSuccessMsg('Trip completed successfully and fuel log inserted!');
-      setCompletingTripId(null);
-      setActualDistance('');
-      setFuelConsumed('');
-      setFuelCost('');
+      setCompletingTripId(null); setActualDistance(''); setFuelConsumed(''); setFuelCost('');
       fetchTripsAndDropdowns();
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Error completing trip');
+      alert(err.response?.data?.message || 'Error completing trip');
     }
   };
 
   const handleCancel = async (tripId) => {
     try {
-      setErrorMsg('');
-      setSuccessMsg('');
       await api.patch(`/trips/${tripId}/cancel`);
-      setSuccessMsg('Trip cancelled.');
       fetchTripsAndDropdowns();
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Error cancelling trip');
+      alert(err.response?.data?.message || 'Error cancelling trip');
     }
   };
 
-  const getStatusBadge = (status) => {
+  const getStatusColor = (status) => {
     switch (status) {
-      case 'Draft':
-        return <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-slate-100 text-slate-800 border border-slate-200">Draft</span>;
-      case 'Dispatched':
-        return <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-50 text-blue-700 border border-blue-200">Dispatched</span>;
-      case 'Completed':
-        return <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">Completed</span>;
-      case 'Cancelled':
-        return <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-rose-50 text-rose-700 border border-rose-200">Cancelled</span>;
-      default:
-        return null;
+      case 'Draft': return 'bg-gray-300';
+      case 'Dispatched': return 'bg-neo-blue';
+      case 'Completed': return 'bg-neo-green';
+      case 'Cancelled': return 'bg-neo-pink';
+      default: return 'bg-white';
     }
   };
 
   if (!canRead) {
     return (
-      <Layout>
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 text-center">
-          <h2 className="text-xl font-bold text-slate-800 mb-2">Access Denied</h2>
-          <p className="text-slate-500">You do not have access to view Trip Management.</p>
+      <MainLayout>
+        <div className="bg-neo-pink border-4 border-black p-8 shadow-hard text-center font-black uppercase text-2xl">
+          ACCESS_DENIED
         </div>
-      </Layout>
+      </MainLayout>
     );
   }
 
   return (
-    <Layout>
-      <div className="mb-8">
-        <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Trip Dispatcher</h1>
-        <p className="text-slate-500 mt-1">Manage draft dispatches, live trip completions, and vehicle assignments.</p>
-      </div>
-
-      {errorMsg && (
-        <div className="mb-6 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 flex items-start">
-          <AlertCircle className="h-5 w-5 mr-3 flex-shrink-0 mt-0.5" />
-          <span className="text-sm font-medium">{errorMsg}</span>
-        </div>
-      )}
-
-      {successMsg && (
-        <div className="mb-6 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-start">
-          <Check className="h-5 w-5 mr-3 flex-shrink-0 mt-0.5" />
-          <span className="text-sm font-medium">{successMsg}</span>
-        </div>
-      )}
-
-      {/* Stepper (Selected/Latest Trip Status) */}
-      {selectedTrip && (
-        <div className="mb-8 bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base font-bold text-slate-800">
-              Trip Details: <span className="text-emerald-600 font-semibold">{selectedTrip.source} → {selectedTrip.destination}</span>
-            </h3>
-            {getStatusBadge(selectedTrip.status)}
-          </div>
-          
-          {/* Progress Stepper bar */}
-          <div className="relative flex items-center justify-between w-full mt-6">
-            <div className="absolute left-0 right-0 top-1/2 h-1 bg-slate-200 -translate-y-1/2 z-0" />
-            
-            {['Draft', 'Dispatched', 'Completed', 'Cancelled'].map((step, idx) => {
-              const stepIndex = ['Draft', 'Dispatched', 'Completed', 'Cancelled'].indexOf(selectedTrip.status);
-              const isActive = step === selectedTrip.status;
-              const isPast = ['Draft', 'Dispatched', 'Completed'].indexOf(step) < stepIndex;
-              const isCancelled = selectedTrip.status === 'Cancelled' && step === 'Cancelled';
-              
-              // Cancelled step shouldn't be green/blue
-              let stepBg = 'bg-white border-slate-350 text-slate-400';
-              if (isActive) {
-                stepBg = isCancelled ? 'bg-rose-600 text-white ring-4 ring-rose-100 border-rose-600' : 'bg-emerald-600 text-white ring-4 ring-emerald-100 border-emerald-600';
-              } else if (isPast && selectedTrip.status !== 'Cancelled') {
-                stepBg = 'bg-emerald-100 text-emerald-700 border-emerald-200';
-              }
-
-              return (
-                <div key={step} className="flex flex-col items-center z-10">
-                  <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center font-semibold text-sm transition-all ${stepBg}`}>
-                    {isPast && selectedTrip.status !== 'Cancelled' ? <Check className="h-4 w-4" /> : idx + 1}
-                  </div>
-                  <span className={`text-xs font-semibold mt-2 ${isActive ? 'text-slate-900 font-bold' : 'text-slate-400'}`}>
-                    {step}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Side: Create Trip Form */}
-        <div className="lg:col-span-1 bg-white rounded-2xl shadow-sm border border-slate-200 p-6 h-fit">
-          <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center">
-            <Navigation className="h-5 w-5 mr-2 text-emerald-500" />
-            Create Dispatch Draft
+    <MainLayout>
+      <div className="pb-12 text-black">
+        <div className="flex justify-between items-end mb-8 border-b-4 border-black pb-4">
+          <h2 className="text-4xl md:text-6xl font-black uppercase tracking-tighter mix-blend-darken">
+            TRIP<span className="text-neo-blue">_DISPATCHER</span>
           </h2>
-
-          {canWrite ? (
-            <form onSubmit={handleCreateTrip} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Source</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Warehouse A"
-                  value={source}
-                  onChange={e => setSource(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-sm transition-all"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Destination</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Hub B"
-                  value={destination}
-                  onChange={e => setDestination(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-sm transition-all"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Select Vehicle</label>
-                <select
-                  required
-                  value={vehicleId}
-                  onChange={e => setVehicleId(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-sm bg-white transition-all"
-                >
-                  <option value="">Choose a vehicle...</option>
-                  {vehicles.map(v => (
-                    <option key={v.id} value={v.id}>
-                      {v.registration_number} — {v.max_load_capacity} kg limit
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Select Driver</label>
-                <select
-                  required
-                  value={driverId}
-                  onChange={e => setDriverId(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-sm bg-white transition-all"
-                >
-                  <option value="">Choose a driver...</option>
-                  {drivers.map(d => (
-                    <option key={d.id} value={d.id}>
-                      {d.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Cargo Weight (kg)</label>
-                <input
-                  type="number"
-                  required
-                  min="1"
-                  placeholder="e.g. 400"
-                  value={cargoWeight}
-                  onChange={e => setCargoWeight(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-sm transition-all"
-                />
-              </div>
-
-              {/* Overage Warning Block */}
-              {isOverweight && (
-                <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 flex items-start text-amber-800">
-                  <AlertCircle className="h-5 w-5 mr-3 flex-shrink-0 mt-0.5 text-amber-600" />
-                  <div className="text-sm">
-                    <p className="font-bold">Overweight Warning</p>
-                    <p className="mt-1 text-xs">
-                      This vehicle capacity is **{selectedVehicle.max_load_capacity} kg**. You entered **{cargoWeight} kg**, which exceeds the capacity by **{overage} kg**.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Planned Distance (km)</label>
-                <input
-                  type="number"
-                  placeholder="e.g. 150"
-                  value={plannedDistance}
-                  onChange={e => setPlannedDistance(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-sm transition-all"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Estimated Revenue ($)</label>
-                <input
-                  type="number"
-                  placeholder="e.g. 800"
-                  value={revenue}
-                  onChange={e => setRevenue(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-sm transition-all"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={isOverweight}
-                className="w-full flex items-center justify-center px-4 py-3 rounded-lg text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-700/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Plus className="h-5 w-5 mr-2" />
-                Create Draft Trip
-              </button>
-            </form>
-          ) : (
-            <p className="text-slate-500 text-sm text-center py-8">
-              Only **Dispatchers** are authorized to create new trips.
-            </p>
-          )}
         </div>
 
-        {/* Right Side: Live Board List */}
-        <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col justify-between">
-          <div>
-            <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center">
-              <MapPin className="h-5 w-5 mr-2 text-emerald-500" />
-              Live Board
-            </h2>
+        {selectedTrip && (
+          <div className="mb-8 bg-white border-4 border-black shadow-hard p-6">
+            <h3 className="font-mono font-bold uppercase mb-4 text-sm bg-black text-white inline-block px-2 py-1">TRIP_LIFECYCLE</h3>
+            <div className="flex items-center justify-between relative mt-4">
+              <div className="absolute left-0 right-0 top-1/2 h-2 bg-black -translate-y-1/2 z-0" />
+              {['Draft', 'Dispatched', 'Completed', 'Cancelled'].map((step, idx) => {
+                const isActive = step === selectedTrip.status;
+                const isPast = ['Draft', 'Dispatched', 'Completed'].indexOf(step) <= ['Draft', 'Dispatched', 'Completed', 'Cancelled'].indexOf(selectedTrip.status) && selectedTrip.status !== 'Cancelled';
+                
+                let stepBg = 'bg-white border-4 border-black';
+                if (isActive) stepBg = getStatusColor(selectedTrip.status) + ' border-4 border-black scale-125';
+                else if (isPast) stepBg = 'bg-black text-white border-4 border-black';
 
-            {loading ? (
-              <div className="text-center py-12 text-slate-500 text-sm">Loading board...</div>
-            ) : trips.length === 0 ? (
-              <div className="text-center py-12 text-slate-500 text-sm border-2 border-dashed border-slate-200 rounded-xl">
-                No trips found in database. Create one!
-              </div>
+                return (
+                  <div key={step} className="flex flex-col items-center z-10">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-sm transition-all ${stepBg}`}>
+                      {idx + 1}
+                    </div>
+                    <span className={`font-mono text-xs font-bold uppercase mt-2 bg-white px-1 border border-black`}>
+                      {step}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+          {/* Create Form */}
+          <div className="lg:col-span-1 bg-white border-4 border-black shadow-hard p-6 h-fit">
+            <h2 className="text-2xl font-black uppercase mb-6 tracking-tighter inline-block bg-neo-yellow px-2 border-2 border-black shadow-[4px_4px_0_rgba(0,0,0,1)]">CREATE_TRIP</h2>
+            
+            {canWrite ? (
+              <form onSubmit={handleCreateTrip} className="space-y-4">
+                <div>
+                  <label className="block font-mono text-sm font-bold uppercase mb-2">Source</label>
+                  <input required value={source} onChange={e=>setSource(e.target.value)} type="text" className="w-full border-4 border-black p-2.5 font-bold uppercase shadow-[4px_4px_0_rgba(0,0,0,1)] focus:outline-none focus:bg-neo-yellow/20" />
+                </div>
+                <div>
+                  <label className="block font-mono text-sm font-bold uppercase mb-2">Destination</label>
+                  <input required value={destination} onChange={e=>setDestination(e.target.value)} type="text" className="w-full border-4 border-black p-2.5 font-bold uppercase shadow-[4px_4px_0_rgba(0,0,0,1)] focus:outline-none focus:bg-neo-yellow/20" />
+                </div>
+                <div>
+                  <label className="block font-mono text-sm font-bold uppercase mb-2">Vehicle (Available Only)</label>
+                  <select required value={vehicleId} onChange={e=>setVehicleId(e.target.value)} className="w-full border-4 border-black p-2.5 font-bold uppercase shadow-[4px_4px_0_rgba(0,0,0,1)] focus:outline-none focus:bg-neo-yellow/20">
+                    <option value="">Select...</option>
+                    {vehicles.map(v => <option key={v.id} value={v.id}>{v.registration_number} - {v.max_load_capacity}kg</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-mono text-sm font-bold uppercase mb-2">Driver (Available Only)</label>
+                  <select required value={driverId} onChange={e=>setDriverId(e.target.value)} className="w-full border-4 border-black p-2.5 font-bold uppercase shadow-[4px_4px_0_rgba(0,0,0,1)] focus:outline-none focus:bg-neo-yellow/20">
+                    <option value="">Select...</option>
+                    {drivers.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-mono text-sm font-bold uppercase mb-2">Cargo Weight (kg)</label>
+                  <input required min="1" value={cargoWeight} onChange={e=>setCargoWeight(e.target.value)} type="number" className="w-full border-4 border-black p-2.5 font-bold uppercase shadow-[4px_4px_0_rgba(0,0,0,1)] focus:outline-none focus:bg-neo-yellow/20" />
+                </div>
+
+                {isOverweight && (
+                  <div className="bg-neo-pink border-4 border-black p-4 font-bold shadow-[4px_4px_0_rgba(0,0,0,1)]">
+                    <p>Vehicle Capacity: {selectedVehicle.max_load_capacity} kg</p>
+                    <p>Cargo Weight: {cargoWeight} kg</p>
+                    <p className="uppercase mt-2 flex items-center bg-black text-white px-2 py-1"><X className="mr-2"/> Capacity exceeded by {overage} kg</p>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block font-mono text-sm font-bold uppercase mb-2">Planned Dist (km)</label>
+                  <input value={plannedDistance} onChange={e=>setPlannedDistance(e.target.value)} type="number" className="w-full border-4 border-black p-2.5 font-bold uppercase shadow-[4px_4px_0_rgba(0,0,0,1)] focus:outline-none focus:bg-neo-yellow/20" />
+                </div>
+                
+                <button type="submit" disabled={isOverweight} className="w-full bg-neo-green border-4 border-black p-4 font-black uppercase text-xl shadow-[4px_4px_0_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_rgba(0,0,0,1)] transition-all mt-4 disabled:opacity-50">
+                  Save_Draft
+                </button>
+              </form>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-slate-100 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                      <th className="pb-3 pr-4">Trip Details</th>
-                      <th className="pb-3 px-4">Vehicle & Driver</th>
-                      <th className="pb-3 px-4">Cargo / Revenue</th>
-                      <th className="pb-3 px-4">Status</th>
-                      {canWrite && <th className="pb-3 pl-4 text-right">Actions</th>}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {trips.map(trip => (
-                      <tr 
-                        key={trip.id}
-                        onClick={() => setSelectedTrip(trip)}
-                        className={`border-b border-slate-100 text-sm hover:bg-slate-50/50 cursor-pointer transition-all ${
-                          selectedTrip?.id === trip.id ? 'bg-slate-50 font-medium' : ''
-                        }`}
-                      >
-                        <td className="py-4 pr-4">
-                          <p className="font-bold text-slate-800">{trip.source} → {trip.destination}</p>
-                          {trip.planned_distance && (
-                            <p className="text-xs text-slate-400 mt-0.5">Planned: {trip.planned_distance} km</p>
-                          )}
-                          {trip.completed_at && (
-                            <p className="text-[11px] text-emerald-600 font-semibold mt-0.5">Completed</p>
-                          )}
-                        </td>
-                        <td className="py-4 px-4 text-slate-600">
-                          <p className="font-semibold text-slate-700">{trip.vehicle_name}</p>
-                          <p className="text-xs text-slate-400">{trip.driver_name}</p>
-                        </td>
-                        <td className="py-4 px-4">
-                          <p className="text-slate-800 font-medium">{trip.cargo_weight} kg</p>
-                          {trip.revenue && <p className="text-xs text-slate-500">${trip.revenue}</p>}
-                        </td>
-                        <td className="py-4 px-4">{getStatusBadge(trip.status)}</td>
-                        {canWrite && (
-                          <td className="py-4 pl-4 text-right" onClick={e => e.stopPropagation()}>
-                            <div className="flex justify-end gap-1.5">
-                              {trip.status === 'Draft' && (
-                                <>
-                                  <button
-                                    onClick={() => handleDispatch(trip.id)}
-                                    className="p-2 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-all"
-                                    title="Dispatch Trip"
-                                  >
-                                    <Play className="h-4 w-4" />
-                                  </button>
-                                  <button
-                                    onClick={() => handleCancel(trip.id)}
-                                    className="p-2 rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 transition-all"
-                                    title="Cancel Trip"
-                                  >
-                                    <X className="h-4 w-4" />
-                                  </button>
-                                </>
-                              )}
+              <div className="bg-gray-200 border-4 border-black p-4 font-bold text-center uppercase">READ_ONLY_ACCESS</div>
+            )}
+          </div>
 
-                              {trip.status === 'Dispatched' && (
-                                <>
-                                  <button
-                                    onClick={() => setCompletingTripId(trip.id)}
-                                    className="p-2 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition-all"
-                                    title="Complete Trip"
-                                  >
-                                    <Check className="h-4 w-4" />
-                                  </button>
-                                  <button
-                                    onClick={() => handleCancel(trip.id)}
-                                    className="p-2 rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 transition-all"
-                                    title="Cancel Trip"
-                                  >
-                                    <X className="h-4 w-4" />
-                                  </button>
-                                </>
-                              )}
-                            </div>
-                          </td>
-                        )}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+          {/* Live Board */}
+          <div className="lg:col-span-2 bg-white border-4 border-black shadow-hard p-6">
+            <h2 className="text-2xl font-black uppercase mb-6 tracking-tighter inline-block bg-neo-blue px-2 border-2 border-black shadow-[4px_4px_0_rgba(0,0,0,1)]">LIVE_BOARD</h2>
+            
+            {loading ? (
+               <div className="font-bold uppercase text-center py-8">Loading...</div>
+            ) : (
+              <div className="space-y-4">
+                {trips.map(trip => (
+                  <div 
+                    key={trip.id} 
+                    onClick={() => setSelectedTrip(trip)}
+                    className={`border-4 border-black p-4 cursor-pointer hover:-translate-y-1 hover:shadow-hard transition-all flex flex-col md:flex-row justify-between md:items-center ${selectedTrip?.id === trip.id ? 'bg-neo-yellow/20 shadow-hard' : 'bg-white'}`}
+                  >
+                    <div>
+                      <div className="font-mono font-bold text-xs bg-black text-white px-1 inline-block mb-2">{trip.id.substring(0,8)}</div>
+                      <p className="font-black text-lg uppercase">{trip.source} → {trip.destination}</p>
+                      <span className={`${getStatusColor(trip.status)} border-2 border-black px-2 py-0.5 text-xs font-black uppercase shadow-[2px_2px_0_rgba(0,0,0,1)] inline-block mt-2`}>{trip.status}</span>
+                    </div>
+                    <div className="mt-4 md:mt-0 text-left md:text-right">
+                      <p className="font-bold uppercase">{trip.vehicle_name} / {trip.driver_name}</p>
+                      <p className="font-mono text-sm">{trip.cargo_weight} kg</p>
+                      
+                      {canWrite && trip.status === 'Draft' && (
+                        <div className="mt-4 flex gap-2 justify-end">
+                          <button onClick={(e) => { e.stopPropagation(); handleDispatch(trip.id); }} className="bg-neo-blue border-2 border-black p-1.5 shadow-[2px_2px_0_rgba(0,0,0,1)] hover:-translate-y-0.5 transition-all"><Play className="h-5 w-5"/></button>
+                          <button onClick={(e) => { e.stopPropagation(); handleCancel(trip.id); }} className="bg-neo-pink border-2 border-black p-1.5 shadow-[2px_2px_0_rgba(0,0,0,1)] hover:-translate-y-0.5 transition-all"><X className="h-5 w-5"/></button>
+                        </div>
+                      )}
+
+                      {canWrite && trip.status === 'Dispatched' && (
+                        <div className="mt-4 flex gap-2 justify-end">
+                          <button onClick={(e) => { e.stopPropagation(); setCompletingTripId(trip.id); }} className="bg-neo-green border-2 border-black p-1.5 shadow-[2px_2px_0_rgba(0,0,0,1)] hover:-translate-y-0.5 transition-all"><Check className="h-5 w-5"/></button>
+                          <button onClick={(e) => { e.stopPropagation(); handleCancel(trip.id); }} className="bg-neo-pink border-2 border-black p-1.5 shadow-[2px_2px_0_rgba(0,0,0,1)] hover:-translate-y-0.5 transition-all"><X className="h-5 w-5"/></button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Completion Modal */}
       {completingTripId && (
-        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-200">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-bold text-slate-900">Complete Trip & Log Details</h3>
-              <button 
-                onClick={() => setCompletingTripId(null)}
-                className="text-slate-400 hover:text-slate-600 rounded-lg p-1 hover:bg-slate-100"
-              >
-                <X className="h-5 w-5" />
-              </button>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white border-4 border-black shadow-hard w-full max-w-md">
+            <div className="flex justify-between items-center bg-black text-white p-4">
+              <h3 className="font-bold uppercase tracking-widest">COMPLETE_TRIP</h3>
+              <button onClick={() => setCompletingTripId(null)} className="hover:text-neo-pink"><X strokeWidth={3} /></button>
             </div>
-            
-            <form onSubmit={handleCompleteSubmit} className="space-y-4">
+            <form onSubmit={handleCompleteSubmit} className="p-6 space-y-6">
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Actual Distance Traveled (km)</label>
-                <input
-                  type="number"
-                  required
-                  min="1"
-                  placeholder="e.g. 155"
-                  value={actualDistance}
-                  onChange={e => setActualDistance(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-sm transition-all"
-                />
+                <label className="block font-mono text-sm font-bold uppercase mb-2">Actual Distance (km)</label>
+                <input required min="1" value={actualDistance} onChange={e=>setActualDistance(e.target.value)} type="number" className="w-full border-4 border-black p-3 font-bold uppercase shadow-[4px_4px_0_rgba(0,0,0,1)] focus:outline-none focus:bg-neo-yellow/20" />
               </div>
-
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Fuel Consumed (Liters)</label>
-                <input
-                  type="number"
-                  required
-                  min="1"
-                  placeholder="e.g. 15"
-                  value={fuelConsumed}
-                  onChange={e => setFuelConsumed(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-sm transition-all"
-                />
+                <label className="block font-mono text-sm font-bold uppercase mb-2">Fuel Consumed (L)</label>
+                <input required min="1" value={fuelConsumed} onChange={e=>setFuelConsumed(e.target.value)} type="number" className="w-full border-4 border-black p-3 font-bold uppercase shadow-[4px_4px_0_rgba(0,0,0,1)] focus:outline-none focus:bg-neo-yellow/20" />
               </div>
-
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Fuel Cost ($ - optional)</label>
-                <input
-                  type="number"
-                  placeholder="e.g. 45"
-                  value={fuelCost}
-                  onChange={e => setFuelCost(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-sm transition-all"
-                />
+                <label className="block font-mono text-sm font-bold uppercase mb-2">Fuel Cost ($)</label>
+                <input value={fuelCost} onChange={e=>setFuelCost(e.target.value)} type="number" className="w-full border-4 border-black p-3 font-bold uppercase shadow-[4px_4px_0_rgba(0,0,0,1)] focus:outline-none focus:bg-neo-yellow/20" />
               </div>
-
-              <div className="flex justify-end gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setCompletingTripId(null)}
-                  className="px-4 py-2.5 rounded-lg border border-slate-200 text-sm font-semibold text-slate-500 hover:bg-slate-55"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2.5 rounded-lg text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-700/20"
-                >
-                  Confirm Completion
-                </button>
-              </div>
+              <button type="submit" className="w-full bg-neo-green border-4 border-black p-4 font-black uppercase text-xl shadow-[4px_4px_0_rgba(0,0,0,1)] hover:-translate-y-1 transition-all mt-4">
+                Confirm_Completion
+              </button>
             </form>
           </div>
         </div>
       )}
-    </Layout>
+    </MainLayout>
   );
 };
 
