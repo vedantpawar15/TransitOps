@@ -8,6 +8,9 @@ import Trips from './pages/Trips';
 import Maintenance from './pages/Maintenance';
 import FuelExpenses from './pages/FuelExpenses';
 import Analytics from './pages/Analytics';
+import Settings from './pages/Settings';
+
+import MainLayout from './components/layout/MainLayout';
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useContext(AuthContext);
@@ -29,13 +32,14 @@ function AppRoutes() {
       <Route path="/maintenance" element={<ProtectedRoute><Maintenance /></ProtectedRoute>} />
       <Route path="/fuel-expenses" element={<ProtectedRoute><FuelExpenses /></ProtectedRoute>} />
       <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
+      <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
       
       {/* Redirect root to dashboard */}
       <Route path="/" element={<Navigate to="/dashboard" />} />
       
-      {/* Placeholders for teammates if needed */}
-      <Route path="/vehicles" element={<ProtectedRoute><div>Vehicles Module</div></ProtectedRoute>} />
-      <Route path="/drivers" element={<ProtectedRoute><div>Drivers Module</div></ProtectedRoute>} />
+      {/* Placeholders for teammates */}
+      <Route path="/fleet" element={<ProtectedRoute><MainLayout><div>Fleet Module</div></MainLayout></ProtectedRoute>} />
+      <Route path="/drivers" element={<ProtectedRoute><MainLayout><div>Drivers Module</div></MainLayout></ProtectedRoute>} />
     </Routes>
   );
 }
