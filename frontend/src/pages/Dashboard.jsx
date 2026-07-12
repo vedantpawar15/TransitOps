@@ -67,7 +67,7 @@ const Dashboard = () => {
     fetchDashboardData();
   }, [user]);
 
-  const getModulePermissionStatus = (moduleName, title, desc, icon shadow) => {
+  const getModulePermissionStatus = (moduleName, title, desc, icon) => {
     const Icon = icon;
     const canRead = hasAccess(moduleName, 'read');
     const canWrite = hasAccess(moduleName, 'write');

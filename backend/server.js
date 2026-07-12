@@ -7,6 +7,7 @@ const maintenanceRoutes = require('./src/routes/maintenance');
 const fuelLogsRoutes = require('./src/routes/fuelLogs');
 const expensesRoutes = require('./src/routes/expenses');
 const analyticsRoutes = require('./src/routes/analytics');
+const vehiclesRoutes = require('./src/routes/vehicles');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -20,6 +21,7 @@ app.use('/maintenance', maintenanceRoutes);
 app.use('/fuel-logs', fuelLogsRoutes);
 app.use('/expenses', expensesRoutes);
 app.use('/analytics', analyticsRoutes);
+app.use('/vehicles', vehiclesRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'TransitOps API is running' });
